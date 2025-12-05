@@ -9,7 +9,7 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 
 // Dummy users para sa demo (walang database pa)
-// Sa real application, ito galing sa backend/database
+
 const DEMO_USERS = [
   {
     id: 1,
