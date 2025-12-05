@@ -2,20 +2,23 @@ import { useState } from 'react'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import InventoryTable from './components/InventoryTable'
+import StockTransactions from './components/StockTransactions'
 import ActivityLogs from './components/ActivityLogs'
 
-// Ito ang main component na nag-oorganize ng buong system
-// May state management para sa user, inventory, at activity logs
+// ============================================
+// UPDATED MAIN APP COMPONENT
+// ============================================
+// Now with Stock Transaction module!
+// Staff uses transactions to change stock
+// Admin can still directly edit items
 
 export default function App() {
+  // ========== STATE MANAGEMENT ==========
   
-  // Current logged-in user (null kung walang naka-login)
   const [currentUser, setCurrentUser] = useState(null)
-  
-  // Current active page (dashboard, inventory, logs)
   const [currentPage, setCurrentPage] = useState('dashboard')
   
-  // Inventory data - stored locally sa memory (walang database pa)
+  // Inventory data
   const [inventoryData, setInventoryData] = useState([
     {
       id: 1,
@@ -79,7 +82,7 @@ export default function App() {
     }
   ])
   
-  // Activity logs - tracks lahat ng changes
+  // Activity logs
   const [activityLogs, setActivityLogs] = useState([
     {
       id: 1,
@@ -110,31 +113,43 @@ export default function App() {
     }
   ])
 
-  // HANDLER FUNCTIONS
+  // NEW: Stock transaction history
+  const [transactionHistory, setTransactionHistory] = useState([
+    {
+      id: 1,
+      itemId: 1,
+      itemName: 'A4 Bond Paper',
+      transactionType: 'IN',
+      quantity: 50,
+      reason: 'Initial stock',
+      userName: 'Mark Jade Bucao',
+      userRole: 'Admin',
+      timestamp: '11/15/2025 10:30 AM',
+      stockBefore: 0,
+      stockAfter: 50
+    }
+  ])
+
+  // ========== HANDLER FUNCTIONS ==========
   
-  // Handle user login
   const handleLogin = (user) => {
     setCurrentUser(user)
     setCurrentPage('dashboard')
   }
 
-  // Handle user logout
   const handleLogout = () => {
     setCurrentUser(null)
     setCurrentPage('dashboard')
   }
 
-  // Handle page navigation
   const handleNavigate = (page) => {
     setCurrentPage(page)
   }
 
-  // Handle adding new item (Admin only)
+  // Admin only - Add new item
   const handleAddItem = (newItem) => {
-    // Add item sa inventory
     setInventoryData(prev => [...prev, newItem])
 
-    // Log the activity
     const newLog = {
       id: Date.now(),
       itemName: newItem.itemName,
@@ -154,14 +169,12 @@ export default function App() {
     setActivityLogs(prev => [...prev, newLog])
   }
 
-  // Handle editing item
+  // Admin only - Edit item (direct edit)
   const handleEditItem = (updatedItem) => {
-    // Update inventory
     setInventoryData(prev => 
       prev.map(item => item.id === updatedItem.id ? updatedItem : item)
     )
 
-    // Log the activity
     const newLog = {
       id: Date.now(),
       itemName: updatedItem.itemName,
@@ -181,15 +194,12 @@ export default function App() {
     setActivityLogs(prev => [...prev, newLog])
   }
 
-  // Handle deleting item (Admin only)
+  // Admin only - Delete item
   const handleDeleteItem = (itemId) => {
-    // Find item para sa log
     const item = inventoryData.find(i => i.id === itemId)
     
-    // Remove from inventory
     setInventoryData(prev => prev.filter(item => item.id !== itemId))
 
-    // Log the activity
     if (item) {
       const newLog = {
         id: Date.now(),
@@ -211,13 +221,50 @@ export default function App() {
     }
   }
 
+  // NEW: Handle stock transaction (Both Admin and Staff can use)
+  const handleTransaction = (transaction) => {
+    // Update inventory quantity based on transaction type
+    setInventoryData(prev => 
+      prev.map(item => {
+        if (item.id === transaction.itemId) {
+          let newQuantity = item.quantity
+          if (transaction.transactionType === 'IN') {
+            newQuantity += transaction.quantity
+          } else {
+            newQuantity -= transaction.quantity
+          }
+          return { ...item, quantity: newQuantity }
+        }
+        return item
+      })
+    )
 
-  // Kung walang naka-login, show Login page
+    // Add to transaction history
+    setTransactionHistory(prev => [...prev, transaction])
+
+    // Add to activity logs
+    const action = transaction.transactionType === 'IN' 
+      ? `Stock IN: +${transaction.quantity}` 
+      : `Stock OUT: -${transaction.quantity}`
+    
+    const newLog = {
+      id: Date.now(),
+      itemName: transaction.itemName,
+      action: 'Transaction',
+      userName: transaction.userName,
+      userRole: transaction.userRole,
+      timestamp: transaction.timestamp,
+      details: `${action} - ${transaction.reason}`
+    }
+    setActivityLogs(prev => [...prev, newLog])
+  }
+
+  // ========== RENDER ==========
+
   if (!currentUser) {
     return <Login onLogin={handleLogin} />
   }
 
-  // Main layout with sidebar navigation
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar Navigation */}
@@ -247,9 +294,7 @@ export default function App() {
             <button
               onClick={() => handleNavigate('dashboard')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentPage === 'dashboard'
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'hover:bg-gray-100'
+                currentPage === 'dashboard' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,26 +303,38 @@ export default function App() {
               <span className="font-medium">Dashboard</span>
             </button>
 
+            {/* Stock Transactions - Available for ALL users */}
             <button
-              onClick={() => handleNavigate('inventory')}
+              onClick={() => handleNavigate('transactions')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentPage === 'inventory'
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'hover:bg-gray-100'
+                currentPage === 'transactions' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
               </svg>
-              <span className="font-medium">Inventory</span>
+              <span className="font-medium">Stock Transactions</span>
             </button>
+
+            {/* Inventory Management - Admin only for editing */}
+            {currentUser.role === 'Admin' && (
+              <button
+                onClick={() => handleNavigate('inventory')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  currentPage === 'inventory' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span className="font-medium">Manage Inventory</span>
+              </button>
+            )}
 
             <button
               onClick={() => handleNavigate('logs')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentPage === 'logs'
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'hover:bg-gray-100'
+                currentPage === 'logs' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -302,7 +359,6 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 ml-64 p-8">
-        {/* Render current page based sa state */}
         {currentPage === 'dashboard' && (
           <Dashboard
             user={currentUser}
@@ -312,7 +368,16 @@ export default function App() {
           />
         )}
 
-        {currentPage === 'inventory' && (
+        {currentPage === 'transactions' && (
+          <StockTransactions
+            user={currentUser}
+            inventoryData={inventoryData}
+            transactionHistory={transactionHistory}
+            onTransaction={handleTransaction}
+          />
+        )}
+
+        {currentPage === 'inventory' && currentUser.role === 'Admin' && (
           <InventoryTable
             user={currentUser}
             inventoryData={inventoryData}
