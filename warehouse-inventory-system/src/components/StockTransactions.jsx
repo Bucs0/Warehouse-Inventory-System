@@ -1,6 +1,8 @@
 // ============================================
-// FILE: src/components/StockTransactions.jsx
+// FILE: src/components/StockTransactions.jsx (UPDATED)
 // ============================================
+// Stock Transaction with search bar and better item identification
+
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
@@ -16,6 +18,7 @@ export default function StockTransactions({
   onTransaction 
 }) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [itemSearchTerm, setItemSearchTerm] = useState('') // NEW: Search for items
   const [filterType, setFilterType] = useState('all')
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
@@ -32,7 +35,13 @@ export default function StockTransactions({
     return matchesSearch && matchesType
   }).reverse()
 
-  // Calculate statistics
+  // NEW: Filter items for transaction
+  const filteredItems = inventoryData.filter(item =>
+    item.itemName.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+    item.category.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+    item.location.toLowerCase().includes(itemSearchTerm.toLowerCase())
+  )
+
   const totalIn = transactionHistory.filter(t => t.transactionType === 'IN')
     .reduce((sum, t) => sum + t.quantity, 0)
   const totalOut = transactionHistory.filter(t => t.transactionType === 'OUT')
@@ -45,6 +54,7 @@ export default function StockTransactions({
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Stock Transactions</h1>
         <p className="text-muted-foreground mt-1">
@@ -105,35 +115,85 @@ export default function StockTransactions({
         </Card>
       </div>
 
-      {/* Available Items */}
+      {/* Available Items for Transaction with Search */}
       <Card>
         <CardHeader>
           <CardTitle>Available Items for Transaction</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Click on an item to record a transaction
+            Search and click on an item to record a transaction
           </p>
+          
+          {/* NEW: Search bar for items */}
+          <div className="mt-4">
+            <Input
+              type="search"
+              placeholder="🔍 Search items by name, category, or location..."
+              value={itemSearchTerm}
+              onChange={(e) => setItemSearchTerm(e.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {inventoryData.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => handleOpenTransaction(item)}
-                className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold">{item.itemName}</h4>
-                    <p className="text-sm text-muted-foreground">{item.category}</p>
+          {filteredItems.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No items found matching "{itemSearchTerm}"
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredItems.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleOpenTransaction(item)}
+                  className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer bg-white"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-lg">{item.itemName}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                        {item.quantity <= item.reorderLevel && (
+                          <Badge variant="warning" className="text-xs">Low Stock</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-2xl font-bold ${item.quantity <= item.reorderLevel ? 'text-orange-600' : 'text-green-600'}`}>
+                        {item.quantity}
+                      </div>
+                      <p className="text-xs text-muted-foreground">in stock</p>
+                    </div>
                   </div>
-                  <Badge variant={item.quantity <= item.reorderLevel ? 'warning' : 'success'}>
-                    {item.quantity}
-                  </Badge>
+                  
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {item.location}
+                    </div>
+                    {item.price > 0 && (
+                      <div className="text-xs font-medium text-blue-600">
+                        ₱{item.price.toLocaleString('en-PH')}
+                      </div>
+                    )}
+                  </div>
+
+                  {item.supplier && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Supplier: {item.supplier}
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">{item.location}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {filteredItems.length > 0 && itemSearchTerm && (
+            <p className="text-sm text-muted-foreground mt-4">
+              Showing {filteredItems.length} of {inventoryData.length} items
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -144,13 +204,6 @@ export default function StockTransactions({
             <CardTitle>Transaction History</CardTitle>
             
             <div className="flex gap-2">
-              <Input
-                type="search"
-                placeholder="Search transactions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-xs"
-              />
               <Button 
                 variant={filterType === 'all' ? 'default' : 'outline'}
                 size="sm"
@@ -173,6 +226,16 @@ export default function StockTransactions({
                 OUT
               </Button>
             </div>
+          </div>
+
+          {/* Search for transactions */}
+          <div className="mt-4">
+            <Input
+              type="search"
+              placeholder="Search transactions by item, user, or reason..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </CardHeader>
 
@@ -208,7 +271,7 @@ export default function StockTransactions({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className={transaction.transactionType === 'IN' ? 'text-green-600' : 'text-red-600'}>
+                        <span className={transaction.transactionType === 'IN' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                           {transaction.transactionType === 'IN' ? '+' : '-'}{transaction.quantity}
                         </span>
                       </TableCell>
@@ -230,6 +293,7 @@ export default function StockTransactions({
         </CardContent>
       </Card>
 
+      {/* Transaction Dialog */}
       {selectedItem && (
         <TransactionDialog
           open={isTransactionDialogOpen}

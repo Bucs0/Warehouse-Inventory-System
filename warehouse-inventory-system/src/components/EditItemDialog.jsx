@@ -1,4 +1,8 @@
+// ============================================
+// FILE: src/components/EditItemDialog.jsx (UPDATED)
+// ============================================
 // Dialog para sa pag-edit ng existing item
+// Now with supplier dropdown!
 
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
@@ -9,20 +13,18 @@ import { Button } from './ui/button'
 
 const CATEGORIES = ['Office Supplies', 'Equipment', 'Furniture', 'Electronics', 'Other']
 
-export default function EditItemDialog({ open, onOpenChange, item, onEdit }) {
-  // State para sa form fields
+export default function EditItemDialog({ open, onOpenChange, item, onEdit, suppliers, categories }) {
   const [formData, setFormData] = useState({
     itemName: '',
     category: 'Office Supplies',
     quantity: '',
     location: '',
     reorderLevel: '',
-    damagedStatus: 'Good',
     price: '',
-    supplier: ''
+    supplier: '',
+    supplierId: null
   })
 
-  // Load item data kapag bumukas ang dialog
   useEffect(() => {
     if (item) {
       setFormData({
@@ -31,29 +33,37 @@ export default function EditItemDialog({ open, onOpenChange, item, onEdit }) {
         quantity: item.quantity?.toString() || '',
         location: item.location || '',
         reorderLevel: item.reorderLevel?.toString() || '',
-        damagedStatus: item.damagedStatus || 'Good',
         price: item.price?.toString() || '',
-        supplier: item.supplier || ''
+        supplier: item.supplier || '',
+        supplierId: item.supplierId || null
       })
     }
   }, [item])
 
-  // Handle input changes
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // Handle form submit
+  // Handle supplier selection
+  const handleSupplierChange = (supplierId) => {
+    const selectedSupplier = suppliers.find(s => s.id === parseInt(supplierId))
+    if (selectedSupplier) {
+      setFormData(prev => ({
+        ...prev,
+        supplierId: selectedSupplier.id,
+        supplier: selectedSupplier.supplierName
+      }))
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     
-    // Validate required fields
     if (!formData.itemName || !formData.quantity || !formData.location) {
       alert('Please fill in all required fields')
       return
     }
 
-    // Create updated item object
     const updatedItem = {
       ...item,
       ...formData,
@@ -62,10 +72,7 @@ export default function EditItemDialog({ open, onOpenChange, item, onEdit }) {
       price: parseFloat(formData.price) || 0
     }
 
-    // Pass to parent component
     onEdit(updatedItem)
-
-    // Close dialog
     onOpenChange(false)
   }
 
@@ -100,13 +107,39 @@ export default function EditItemDialog({ open, onOpenChange, item, onEdit }) {
                 value={formData.category}
                 onChange={(e) => handleChange('category', e.target.value)}
               >
-                {CATEGORIES.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
+                {categories && categories.length > 0 ? (
+                  categories.map(cat => (
+                    <option key={cat.id} value={cat.categoryName}>{cat.categoryName}</option>
+                  ))
+                ) : (
+                  CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))
+                )}
               </Select>
             </div>
 
-            {/* Quantity at Reorder Level */}
+            {/* Supplier Dropdown */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-supplier">Supplier</Label>
+              <Select
+                id="edit-supplier"
+                value={formData.supplierId || ''}
+                onChange={(e) => handleSupplierChange(e.target.value)}
+              >
+                <option value="">Select Supplier...</option>
+                {suppliers && suppliers
+                  .filter(s => s.isActive)
+                  .map(supplier => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.supplierName}
+                    </option>
+                  ))
+                }
+              </Select>
+            </div>
+
+            {/* Quantity and Reorder Level */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-quantity">
@@ -149,42 +182,18 @@ export default function EditItemDialog({ open, onOpenChange, item, onEdit }) {
               />
             </div>
 
-            {/* Price at Supplier */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-price">Price (₱)</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="e.g., 250.00"
-                  value={formData.price}
-                  onChange={(e) => handleChange('price', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-supplier">Supplier</Label>
-                <Input
-                  id="edit-supplier"
-                  placeholder="e.g., Office Warehouse"
-                  value={formData.supplier}
-                  onChange={(e) => handleChange('supplier', e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Damaged Status */}
+            {/* Price */}
             <div className="space-y-2">
-              <Label htmlFor="edit-damagedStatus">Status</Label>
-              <Select
-                id="edit-damagedStatus"
-                value={formData.damagedStatus}
-                onChange={(e) => handleChange('damagedStatus', e.target.value)}
-              >
-                <option value="Good">Good</option>
-                <option value="Damaged">Damaged</option>
-              </Select>
+              <Label htmlFor="edit-price">Price (₱)</Label>
+              <Input
+                id="edit-price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g., 250.00"
+                value={formData.price}
+                onChange={(e) => handleChange('price', e.target.value)}
+              />
             </div>
           </div>
 
