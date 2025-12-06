@@ -3,14 +3,9 @@ import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import InventoryTable from './components/InventoryTable'
 import StockTransactions from './components/StockTransactions'
+import SuppliersPage from './components/SuppliersPage'
+import CategoriesPage from './components/CategoriesPage'
 import ActivityLogs from './components/ActivityLogs'
-
-// ============================================
-// UPDATED MAIN APP COMPONENT
-// ============================================
-// Now with Stock Transaction module!
-// Staff uses transactions to change stock
-// Admin can still directly edit items
 
 export default function App() {
   // ========== STATE MANAGEMENT ==========
@@ -18,7 +13,75 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [currentPage, setCurrentPage] = useState('dashboard')
   
-  // Inventory data
+  // Suppliers data
+  const [suppliers, setSuppliers] = useState([
+    {
+      id: 1,
+      supplierName: 'Office Warehouse',
+      contactPerson: 'Juan Dela Cruz',
+      contactEmail: 'sales@officewarehouse.ph',
+      contactPhone: '+63-912-345-6789',
+      address: 'Quezon City, Metro Manila',
+      isActive: true,
+      dateAdded: '11/01/2025'
+    },
+    {
+      id: 2,
+      supplierName: 'COSCO SHIPPING',
+      contactPerson: 'Maria Santos',
+      contactEmail: 'contact@coscoshipping.ph',
+      contactPhone: '+63-917-888-9999',
+      address: 'Manila Port Area',
+      isActive: true,
+      dateAdded: '11/02/2025'
+    },
+    {
+      id: 3,
+      supplierName: 'Tech Supplies Inc.',
+      contactPerson: 'Pedro Reyes',
+      contactEmail: 'info@techsupplies.ph',
+      contactPhone: '+63-918-111-2222',
+      address: 'Makati City',
+      isActive: true,
+      dateAdded: '11/03/2025'
+    }
+  ])
+
+  // Categories data
+  const [categories, setCategories] = useState([
+    {
+      id: 1,
+      categoryName: 'Office Supplies',
+      description: 'Paper, pens, and general office items',
+      dateAdded: '11/01/2025'
+    },
+    {
+      id: 2,
+      categoryName: 'Equipment',
+      description: 'Printers, computers, and machinery',
+      dateAdded: '11/01/2025'
+    },
+    {
+      id: 3,
+      categoryName: 'Furniture',
+      description: 'Desks, chairs, and storage',
+      dateAdded: '11/01/2025'
+    },
+    {
+      id: 4,
+      categoryName: 'Electronics',
+      description: 'Gadgets and electronic accessories',
+      dateAdded: '11/01/2025'
+    },
+    {
+      id: 5,
+      categoryName: 'Other',
+      description: 'Miscellaneous items',
+      dateAdded: '11/01/2025'
+    }
+  ])
+  
+  // Inventory data (updated to use supplier IDs)
   const [inventoryData, setInventoryData] = useState([
     {
       id: 1,
@@ -30,6 +93,7 @@ export default function App() {
       damagedStatus: 'Good',
       price: 250.00,
       supplier: 'Office Warehouse',
+      supplierId: 1,
       dateAdded: '11/15/2025'
     },
     {
@@ -42,6 +106,7 @@ export default function App() {
       damagedStatus: 'Good',
       price: 15000.00,
       supplier: 'Tech Supplies Inc.',
+      supplierId: 3,
       dateAdded: '11/14/2025'
     },
     {
@@ -53,7 +118,8 @@ export default function App() {
       reorderLevel: 5,
       damagedStatus: 'Damaged',
       price: 8500.00,
-      supplier: 'Furniture Plus',
+      supplier: 'Office Warehouse',
+      supplierId: 1,
       dateAdded: '11/10/2025'
     },
     {
@@ -66,6 +132,7 @@ export default function App() {
       damagedStatus: 'Good',
       price: 10.00,
       supplier: 'Office Warehouse',
+      supplierId: 1,
       dateAdded: '11/16/2025'
     },
     {
@@ -78,6 +145,7 @@ export default function App() {
       damagedStatus: 'Good',
       price: 1200.00,
       supplier: 'Tech Supplies Inc.',
+      supplierId: 3,
       dateAdded: '11/12/2025'
     }
   ])
@@ -113,7 +181,7 @@ export default function App() {
     }
   ])
 
-  // NEW: Stock transaction history
+  // Stock transaction history
   const [transactionHistory, setTransactionHistory] = useState([
     {
       id: 1,
@@ -146,7 +214,7 @@ export default function App() {
     setCurrentPage(page)
   }
 
-  // Admin only - Add new item
+  // Inventory handlers
   const handleAddItem = (newItem) => {
     setInventoryData(prev => [...prev, newItem])
 
@@ -169,7 +237,6 @@ export default function App() {
     setActivityLogs(prev => [...prev, newLog])
   }
 
-  // Admin only - Edit item (direct edit)
   const handleEditItem = (updatedItem) => {
     setInventoryData(prev => 
       prev.map(item => item.id === updatedItem.id ? updatedItem : item)
@@ -194,7 +261,6 @@ export default function App() {
     setActivityLogs(prev => [...prev, newLog])
   }
 
-  // Admin only - Delete item
   const handleDeleteItem = (itemId) => {
     const item = inventoryData.find(i => i.id === itemId)
     
@@ -221,9 +287,8 @@ export default function App() {
     }
   }
 
-  // NEW: Handle stock transaction (Both Admin and Staff can use)
+  // Transaction handler
   const handleTransaction = (transaction) => {
-    // Update inventory quantity based on transaction type
     setInventoryData(prev => 
       prev.map(item => {
         if (item.id === transaction.itemId) {
@@ -239,10 +304,8 @@ export default function App() {
       })
     )
 
-    // Add to transaction history
     setTransactionHistory(prev => [...prev, transaction])
 
-    // Add to activity logs
     const action = transaction.transactionType === 'IN' 
       ? `Stock IN: +${transaction.quantity}` 
       : `Stock OUT: -${transaction.quantity}`
@@ -259,6 +322,165 @@ export default function App() {
     setActivityLogs(prev => [...prev, newLog])
   }
 
+  // Supplier handlers
+  const handleAddSupplier = (newSupplier) => {
+    setSuppliers(prev => [...prev, newSupplier])
+
+    const newLog = {
+      id: Date.now(),
+      itemName: newSupplier.supplierName,
+      action: 'Added',
+      userName: currentUser.name,
+      userRole: currentUser.role,
+      timestamp: new Date().toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      details: 'New supplier added'
+    }
+    setActivityLogs(prev => [...prev, newLog])
+  }
+
+  const handleEditSupplier = (updatedSupplier) => {
+    setSuppliers(prev => 
+      prev.map(supplier => supplier.id === updatedSupplier.id ? updatedSupplier : supplier)
+    )
+
+    const newLog = {
+      id: Date.now(),
+      itemName: updatedSupplier.supplierName,
+      action: 'Edited',
+      userName: currentUser.name,
+      userRole: currentUser.role,
+      timestamp: new Date().toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      details: 'Supplier information updated'
+    }
+    setActivityLogs(prev => [...prev, newLog])
+  }
+
+  const handleDeleteSupplier = (supplierId) => {
+    const supplier = suppliers.find(s => s.id === supplierId)
+    
+    setSuppliers(prev => prev.filter(s => s.id !== supplierId))
+
+    if (supplier) {
+      const newLog = {
+        id: Date.now(),
+        itemName: supplier.supplierName,
+        action: 'Deleted',
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        timestamp: new Date().toLocaleString('en-PH', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
+        details: 'Supplier removed'
+      }
+      setActivityLogs(prev => [...prev, newLog])
+    }
+  }
+
+  // Category handlers
+  const handleAddCategory = (newCategory) => {
+    setCategories(prev => [...prev, newCategory])
+
+    const newLog = {
+      id: Date.now(),
+      itemName: newCategory.categoryName,
+      action: 'Added',
+      userName: currentUser.name,
+      userRole: currentUser.role,
+      timestamp: new Date().toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      details: 'New category added'
+    }
+    setActivityLogs(prev => [...prev, newLog])
+  }
+
+  const handleEditCategory = (updatedCategory) => {
+    const oldCategory = categories.find(c => c.id === updatedCategory.id)
+    
+    setCategories(prev => 
+      prev.map(category => category.id === updatedCategory.id ? updatedCategory : category)
+    )
+
+    // Update category name in all inventory items if changed
+    if (oldCategory && oldCategory.categoryName !== updatedCategory.categoryName) {
+      setInventoryData(prev =>
+        prev.map(item =>
+          item.category === oldCategory.categoryName
+            ? { ...item, category: updatedCategory.categoryName }
+            : item
+        )
+      )
+    }
+
+    const newLog = {
+      id: Date.now(),
+      itemName: updatedCategory.categoryName,
+      action: 'Edited',
+      userName: currentUser.name,
+      userRole: currentUser.role,
+      timestamp: new Date().toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      details: 'Category information updated'
+    }
+    setActivityLogs(prev => [...prev, newLog])
+  }
+
+  const handleDeleteCategory = (categoryId) => {
+    const category = categories.find(c => c.id === categoryId)
+    
+    setCategories(prev => prev.filter(c => c.id !== categoryId))
+
+    if (category) {
+      const newLog = {
+        id: Date.now(),
+        itemName: category.categoryName,
+        action: 'Deleted',
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        timestamp: new Date().toLocaleString('en-PH', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
+        details: 'Category removed'
+      }
+      setActivityLogs(prev => [...prev, newLog])
+    }
+  }
+
   // ========== RENDER ==========
 
   if (!currentUser) {
@@ -268,7 +490,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-gray-200 fixed h-screen">
+      <aside className="w-64 bg-white border-r border-gray-200 fixed h-screen overflow-y-auto">
         <div className="p-6">
           {/* Logo/Brand */}
           <div className="flex items-center gap-3 mb-8">
@@ -303,7 +525,6 @@ export default function App() {
               <span className="font-medium">Dashboard</span>
             </button>
 
-            {/* Stock Transactions - Available for ALL users */}
             <button
               onClick={() => handleNavigate('transactions')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
@@ -316,7 +537,6 @@ export default function App() {
               <span className="font-medium">Stock Transactions</span>
             </button>
 
-            {/* Inventory Management - Admin only for editing */}
             {currentUser.role === 'Admin' && (
               <button
                 onClick={() => handleNavigate('inventory')}
@@ -330,6 +550,30 @@ export default function App() {
                 <span className="font-medium">Manage Inventory</span>
               </button>
             )}
+
+            <button
+              onClick={() => handleNavigate('suppliers')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                currentPage === 'suppliers' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <span className="font-medium">Suppliers</span>
+            </button>
+
+            <button
+              onClick={() => handleNavigate('categories')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                currentPage === 'categories' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <span className="font-medium">Categories</span>
+            </button>
 
             <button
               onClick={() => handleNavigate('logs')}
@@ -384,6 +628,28 @@ export default function App() {
             onAddItem={handleAddItem}
             onEditItem={handleEditItem}
             onDeleteItem={handleDeleteItem}
+          />
+        )}
+
+        {currentPage === 'suppliers' && (
+          <SuppliersPage
+            user={currentUser}
+            suppliers={suppliers}
+            inventoryData={inventoryData}
+            onAddSupplier={handleAddSupplier}
+            onEditSupplier={handleEditSupplier}
+            onDeleteSupplier={handleDeleteSupplier}
+          />
+        )}
+
+        {currentPage === 'categories' && (
+          <CategoriesPage
+            user={currentUser}
+            categories={categories}
+            inventoryData={inventoryData}
+            onAddCategory={handleAddCategory}
+            onEditCategory={handleEditCategory}
+            onDeleteCategory={handleDeleteCategory}
           />
         )}
 
