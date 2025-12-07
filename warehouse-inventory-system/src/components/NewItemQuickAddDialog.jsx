@@ -1,113 +1,80 @@
 // ============================================
-// FILE: src/components/AddItemDialog.jsx (UPDATED)
+// FILE: src/components/NewItemQuickAddDialog.jsx (NEW)
 // ============================================
-// Dialog for adding new item with supplier dropdown
+// Quick dialog for adding item info when creating supplier with new items
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Select } from './ui/select'
 import { Button } from './ui/button'
+import { Badge } from './ui/badge'
 
-export default function AddItemDialog({ 
+export default function NewItemQuickAddDialog({ 
   open, 
   onOpenChange, 
-  onAdd, 
-  suppliers = [],
-  categories = []
+  itemName, 
+  categories,
+  onComplete 
 }) {
   const [formData, setFormData] = useState({
-    itemName: '',
     category: 'Office Supplies',
     quantity: '',
     location: '',
     reorderLevel: '10',
-    price: '',
-    supplierId: '',
-    supplier: ''
+    price: ''
   })
+
+  // Reset form when itemName changes
+  useEffect(() => {
+    if (itemName) {
+      setFormData({
+        category: 'Office Supplies',
+        quantity: '',
+        location: '',
+        reorderLevel: '10',
+        price: ''
+      })
+    }
+  }, [itemName])
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSupplierChange = (supplierId) => {
-    const selectedSupplier = suppliers.find(s => s.id === parseInt(supplierId))
-    if (selectedSupplier) {
-      setFormData(prev => ({
-        ...prev,
-        supplierId: selectedSupplier.id,
-        supplier: selectedSupplier.supplierName
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        supplierId: '',
-        supplier: ''
-      }))
-    }
-  }
-
   const handleSubmit = () => {
-    if (!formData.itemName || !formData.quantity || !formData.location) {
-      alert('Please fill in all required fields (Item Name, Quantity, Location)')
+    if (!formData.quantity || !formData.location) {
+      alert('Please fill in quantity and location')
       return
     }
 
-    const newItem = {
-      id: Date.now(),
+    const itemData = {
       ...formData,
       quantity: parseInt(formData.quantity) || 0,
       reorderLevel: parseInt(formData.reorderLevel) || 10,
-      price: parseFloat(formData.price) || 0,
-      damagedStatus: 'Good',
-      dateAdded: new Date().toLocaleDateString('en-PH')
+      price: parseFloat(formData.price) || 0
     }
 
-    onAdd(newItem)
-
-    // Reset form
-    setFormData({
-      itemName: '',
-      category: 'Office Supplies',
-      quantity: '',
-      location: '',
-      reorderLevel: '10',
-      price: '',
-      supplierId: '',
-      supplier: ''
-    })
-    onOpenChange(false)
+    onComplete(itemData)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Item</DialogTitle>
+          <DialogTitle>Add Item Details</DialogTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Complete the information for: <Badge variant="outline">{itemName}</Badge>
+          </p>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Item Name */}
-          <div className="space-y-2">
-            <Label htmlFor="itemName">
-              Item Name <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="itemName"
-              placeholder="e.g., A4 Bond Paper"
-              value={formData.itemName}
-              onChange={(e) => handleChange('itemName', e.target.value)}
-              required
-            />
-          </div>
-
           {/* Category */}
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="quick-category">Category</Label>
             <Select
-              id="category"
+              id="quick-category"
               value={formData.category}
               onChange={(e) => handleChange('category', e.target.value)}
             >
@@ -129,34 +96,14 @@ export default function AddItemDialog({
             </Select>
           </div>
 
-          {/* Supplier Dropdown */}
-          <div className="space-y-2">
-            <Label htmlFor="supplier">Supplier</Label>
-            <Select
-              id="supplier"
-              value={formData.supplierId}
-              onChange={(e) => handleSupplierChange(e.target.value)}
-            >
-              <option value="">Select Supplier (Optional)...</option>
-              {suppliers
-                .filter(s => s.isActive)
-                .map(supplier => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.supplierName}
-                  </option>
-                ))
-              }
-            </Select>
-          </div>
-
           {/* Quantity and Reorder Level */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="quantity">
+              <Label htmlFor="quick-quantity">
                 Quantity <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="quantity"
+                id="quick-quantity"
                 type="number"
                 min="0"
                 placeholder="e.g., 100"
@@ -166,9 +113,9 @@ export default function AddItemDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reorderLevel">Reorder Level</Label>
+              <Label htmlFor="quick-reorderLevel">Reorder Level</Label>
               <Input
-                id="reorderLevel"
+                id="quick-reorderLevel"
                 type="number"
                 min="0"
                 placeholder="e.g., 10"
@@ -180,11 +127,11 @@ export default function AddItemDialog({
 
           {/* Location */}
           <div className="space-y-2">
-            <Label htmlFor="location">
+            <Label htmlFor="quick-location">
               Location <span className="text-red-500">*</span>
             </Label>
             <Input
-              id="location"
+              id="quick-location"
               placeholder="e.g., Warehouse A, Shelf 3"
               value={formData.location}
               onChange={(e) => handleChange('location', e.target.value)}
@@ -194,9 +141,9 @@ export default function AddItemDialog({
 
           {/* Price */}
           <div className="space-y-2">
-            <Label htmlFor="price">Price (₱)</Label>
+            <Label htmlFor="quick-price">Price (₱)</Label>
             <Input
-              id="price"
+              id="quick-price"
               type="number"
               min="0"
               step="0.01"
@@ -208,7 +155,11 @@ export default function AddItemDialog({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit}>Add Item</Button>

@@ -1,4 +1,6 @@
-// Table component na nag-didisplay ng inventory items
+// ============================================
+// FILE: src/components/InventoryTable.jsx (COMPLETE UPDATED)
+// ============================================
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -9,21 +11,25 @@ import { Input } from './ui/input'
 import AddItemDialog from './AddItemDialog'
 import EditItemDialog from './EditItemDialog'
 
-export default function InventoryTable({ user, inventoryData, onAddItem, onEditItem, onDeleteItem }) {
-  // State para sa search at dialogs
+export default function InventoryTable({ 
+  user, 
+  inventoryData, 
+  suppliers,
+  categories,
+  onAddItem, 
+  onEditItem, 
+  onDeleteItem 
+}) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
-  const [filterStatus, setFilterStatus] = useState('all') // all, low-stock, damaged
+  const [filterStatus, setFilterStatus] = useState('all')
 
-  // Filter ang items based sa search at status
   const filteredItems = inventoryData.filter(item => {
-    // Search filter
     const matchesSearch = item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.location.toLowerCase().includes(searchTerm.toLowerCase())
     
-    // Status filter
     let matchesStatus = true
     if (filterStatus === 'low-stock') {
       matchesStatus = item.quantity <= item.reorderLevel
@@ -34,7 +40,6 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
     return matchesSearch && matchesStatus
   })
 
-  // Function para sa delete with confirmation
   const handleDelete = (item) => {
     if (window.confirm(`Are you sure you want to delete "${item.itemName}"?`)) {
       onDeleteItem(item.id)
@@ -43,13 +48,11 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
 
   return (
     <div className="space-y-4">
-      {/* Header with search and filters */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <CardTitle>Inventory Management</CardTitle>
             
-            {/* Add button - only for Admin */}
             {user.role === 'Admin' && (
               <Button onClick={() => setIsAddDialogOpen(true)}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,9 +63,7 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
             )}
           </div>
 
-          {/* Search and filter row */}
           <div className="flex flex-col md:flex-row gap-4 mt-4">
-            {/* Search bar */}
             <div className="flex-1">
               <Input
                 type="search"
@@ -72,7 +73,6 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
               />
             </div>
 
-            {/* Status filter buttons */}
             <div className="flex gap-2">
               <Button 
                 variant={filterStatus === 'all' ? 'default' : 'outline'}
@@ -100,7 +100,6 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
         </CardHeader>
 
         <CardContent>
-          {/* Table */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -127,15 +126,12 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
                 ) : (
                   filteredItems.map((item) => (
                     <TableRow key={item.id}>
-                      {/* Item Name */}
                       <TableCell className="font-medium">{item.itemName}</TableCell>
                       
-                      {/* Category */}
                       <TableCell>
                         <Badge variant="outline">{item.category}</Badge>
                       </TableCell>
                       
-                      {/* Quantity with low stock indicator */}
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className={item.quantity <= item.reorderLevel ? 'text-orange-600 font-semibold' : ''}>
@@ -147,25 +143,20 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
                         </div>
                       </TableCell>
                       
-                      {/* Location */}
                       <TableCell>{item.location}</TableCell>
                       
-                      {/* Status */}
                       <TableCell>
                         <Badge variant={item.damagedStatus === 'Good' ? 'success' : 'destructive'}>
                           {item.damagedStatus}
                         </Badge>
                       </TableCell>
                       
-                      {/* Price */}
                       <TableCell>
                         ₱{item.price ? item.price.toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '0.00'}
                       </TableCell>
                       
-                      {/* Actions */}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {/* Edit button */}
                           <Button
                             size="sm"
                             variant="outline"
@@ -174,7 +165,6 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
                             Edit
                           </Button>
                           
-                          {/* Delete button - Admin only */}
                           {user.role === 'Admin' && (
                             <Button
                               size="sm"
@@ -193,7 +183,6 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
             </Table>
           </div>
 
-          {/* Results count */}
           {filteredItems.length > 0 && (
             <p className="text-sm text-muted-foreground mt-4">
               Showing {filteredItems.length} of {inventoryData.length} items
@@ -202,20 +191,22 @@ export default function InventoryTable({ user, inventoryData, onAddItem, onEditI
         </CardContent>
       </Card>
 
-      {/* Add Item Dialog */}
       <AddItemDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAdd={onAddItem}
+        suppliers={suppliers}
+        categories={categories}
       />
 
-      {/* Edit Item Dialog */}
       {editingItem && (
         <EditItemDialog
           open={!!editingItem}
           onOpenChange={(open) => !open && setEditingItem(null)}
           item={editingItem}
           onEdit={onEditItem}
+          suppliers={suppliers}
+          categories={categories}
         />
       )}
     </div>

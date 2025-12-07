@@ -1,8 +1,6 @@
 // ============================================
-// FILE: src/components/SuppliersPage.jsx
+// FILE: src/components/SuppliersPage.jsx (COMPLETE UPDATED)
 // ============================================
-// Supplier Management - View, Add, Edit, Delete suppliers
-// Admin: Full access | Staff: View only
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -12,23 +10,36 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import AddSupplierDialog from './AddSupplierDialog'
 import EditSupplierDialog from './EditSupplierDialog'
+import NewItemQuickAddDialog from './NewItemQuickAddDialog'
 
-export default function SuppliersPage({ user, suppliers, inventoryData, onAddSupplier, onEditSupplier, onDeleteSupplier }) {
-  // State management
+export default function SuppliersPage({ 
+  user, 
+  suppliers, 
+  inventoryData, 
+  categories,
+  onAddSupplier, 
+  onEditSupplier, 
+  onDeleteSupplier,
+  onAddItem
+}) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState(null)
-  const [filterStatus, setFilterStatus] = useState('all') // all, active, inactive
+  const [filterStatus, setFilterStatus] = useState('all')
+  
+  // States for handling new items
+  const [pendingNewItems, setPendingNewItems] = useState([])
+  const [currentNewItemIndex, setCurrentNewItemIndex] = useState(0)
+  const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false)
+  const [pendingSupplierData, setPendingSupplierData] = useState(null)
+  const [createdItemIds, setCreatedItemIds] = useState([])
 
-  // Filter suppliers
   const filteredSuppliers = suppliers.filter(supplier => {
-    // Search filter
     const matchesSearch = 
       supplier.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.contactEmail.toLowerCase().includes(searchTerm.toLowerCase())
     
-    // Status filter
     let matchesStatus = true
     if (filterStatus === 'active') {
       matchesStatus = supplier.isActive === true
@@ -39,12 +50,10 @@ export default function SuppliersPage({ user, suppliers, inventoryData, onAddSup
     return matchesSearch && matchesStatus
   })
 
-  // Count items per supplier
   const getSupplierItemCount = (supplierId) => {
     return inventoryData.filter(item => item.supplierId === supplierId).length
   }
 
-  // Handle delete with confirmation
   const handleDelete = (supplier) => {
     const itemCount = getSupplierItemCount(supplier.id)
     if (itemCount > 0) {
@@ -59,13 +68,78 @@ export default function SuppliersPage({ user, suppliers, inventoryData, onAddSup
     onDeleteSupplier(supplier.id)
   }
 
-  // Calculate statistics
+  const handleAddSupplierWithItems = (supplierData) => {
+    if (supplierData.newItems && supplierData.newItems.length > 0) {
+      setPendingSupplierData(supplierData)
+      setPendingNewItems(supplierData.newItems)
+      setCurrentNewItemIndex(0)
+      setCreatedItemIds([])
+      setIsNewItemDialogOpen(true)
+    } else {
+      const finalSupplier = {
+        id: Date.now(),
+        supplierName: supplierData.supplierName,
+        contactPerson: supplierData.contactPerson,
+        contactEmail: supplierData.contactEmail,
+        contactPhone: supplierData.contactPhone,
+        address: supplierData.address,
+        isActive: supplierData.isActive,
+        suppliedItemIds: supplierData.suppliedItemIds,
+        dateAdded: new Date().toLocaleDateString('en-PH')
+      }
+      onAddSupplier(finalSupplier)
+    }
+  }
+
+  const handleNewItemComplete = (itemData) => {
+    const itemName = pendingNewItems[currentNewItemIndex]
+    const newItemId = Date.now() + currentNewItemIndex
+    
+    const newItem = {
+      id: newItemId,
+      itemName: itemName,
+      ...itemData,
+      supplier: pendingSupplierData.supplierName,
+      supplierId: null,
+      damagedStatus: 'Good',
+      dateAdded: new Date().toLocaleDateString('en-PH')
+    }
+    
+    onAddItem(newItem)
+    setCreatedItemIds(prev => [...prev, newItemId])
+    
+    if (currentNewItemIndex < pendingNewItems.length - 1) {
+      setCurrentNewItemIndex(currentNewItemIndex + 1)
+    } else {
+      const supplierId = Date.now()
+      
+      const finalSupplier = {
+        id: supplierId,
+        supplierName: pendingSupplierData.supplierName,
+        contactPerson: pendingSupplierData.contactPerson,
+        contactEmail: pendingSupplierData.contactEmail,
+        contactPhone: pendingSupplierData.contactPhone,
+        address: pendingSupplierData.address,
+        isActive: pendingSupplierData.isActive,
+        suppliedItemIds: [...pendingSupplierData.suppliedItemIds, ...createdItemIds, newItemId],
+        dateAdded: new Date().toLocaleDateString('en-PH')
+      }
+      
+      onAddSupplier(finalSupplier)
+      
+      setIsNewItemDialogOpen(false)
+      setPendingNewItems([])
+      setCurrentNewItemIndex(0)
+      setPendingSupplierData(null)
+      setCreatedItemIds([])
+    }
+  }
+
   const activeSuppliers = suppliers.filter(s => s.isActive).length
   const inactiveSuppliers = suppliers.filter(s => !s.isActive).length
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Supplier Management</h1>
         <p className="text-muted-foreground mt-1">
@@ -73,7 +147,6 @@ export default function SuppliersPage({ user, suppliers, inventoryData, onAddSup
         </p>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
@@ -124,13 +197,11 @@ export default function SuppliersPage({ user, suppliers, inventoryData, onAddSup
         </Card>
       </div>
 
-      {/* Suppliers Table */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <CardTitle>Suppliers List</CardTitle>
             
-            {/* Add button - Admin only */}
             {user.role === 'Admin' && (
               <Button onClick={() => setIsAddDialogOpen(true)}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +212,6 @@ export default function SuppliersPage({ user, suppliers, inventoryData, onAddSup
             )}
           </div>
 
-          {/* Search and filter row */}
           <div className="flex flex-col md:flex-row gap-4 mt-4">
             <div className="flex-1">
               <Input
@@ -257,14 +327,14 @@ export default function SuppliersPage({ user, suppliers, inventoryData, onAddSup
         </CardContent>
       </Card>
 
-      {/* Add Supplier Dialog */}
       <AddSupplierDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        onAdd={onAddSupplier}
+        onAdd={handleAddSupplierWithItems}
+        inventoryData={inventoryData}
+        categories={categories}
       />
 
-      {/* Edit Supplier Dialog */}
       {editingSupplier && (
         <EditSupplierDialog
           open={!!editingSupplier}
@@ -272,6 +342,24 @@ export default function SuppliersPage({ user, suppliers, inventoryData, onAddSup
           supplier={editingSupplier}
           onEdit={onEditSupplier}
           isReadOnly={user.role !== 'Admin'}
+        />
+      )}
+
+      {pendingNewItems.length > 0 && (
+        <NewItemQuickAddDialog
+          open={isNewItemDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsNewItemDialogOpen(false)
+              setPendingNewItems([])
+              setCurrentNewItemIndex(0)
+              setPendingSupplierData(null)
+              setCreatedItemIds([])
+            }
+          }}
+          itemName={pendingNewItems[currentNewItemIndex]}
+          categories={categories}
+          onComplete={handleNewItemComplete}
         />
       )}
     </div>
