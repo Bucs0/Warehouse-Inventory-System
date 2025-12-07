@@ -183,16 +183,53 @@ export default function App() {
   }
 
   // ========== SUPPLIER HANDLERS ==========
-  const handleAddSupplier = async (newSupplier) => {
-    try {
-      await api.addSupplier(newSupplier)
-      await loadAllData()
-      alert('Supplier added successfully!')
-    } catch (error) {
-      console.error('Error adding supplier:', error)
-      alert('Error adding supplier: ' + error.message)
+  
+  const handleAddSupplier = async (supplierData) => {
+  try {
+    // First, add the supplier
+    await api.addSupplier({
+      supplierName: supplierData.supplierName,
+      contactPerson: supplierData.contactPerson,
+      contactEmail: supplierData.contactEmail,
+      contactPhone: supplierData.contactPhone,
+      address: supplierData.address,
+      isActive: supplierData.isActive
+    })
+
+    // If there are new items to add to inventory, add them
+    if (supplierData.newItems && supplierData.newItems.length > 0) {
+      // Get the newly created supplier ID
+      const allSuppliers = await api.getSuppliers()
+      const newSupplier = allSuppliers.find(s => s.supplierName === supplierData.supplierName)
+      
+      if (newSupplier) {
+        // Add each new item to inventory with supplier linked
+        for (const itemData of supplierData.newItems) {
+          await api.addInventoryItem({
+            itemName: itemData.itemName,
+            category: itemData.category,
+            quantity: itemData.quantity,
+            location: itemData.location,
+            reorderLevel: itemData.reorderLevel,
+            price: itemData.price,
+            supplierId: newSupplier.id,
+            supplier: newSupplier.supplierName,
+            damagedStatus: 'Good',
+            dateAdded: new Date().toLocaleDateString('en-PH')
+          })
+        }
+      }
     }
+
+    // Reload all data
+    await loadAllData()
+    alert(`Supplier added successfully!${supplierData.newItems && supplierData.newItems.length > 0 ? ` ${supplierData.newItems.length} new item(s) added to inventory.` : ''}`)
+  } catch (error) {
+    console.error('Error adding supplier:', error)
+    alert('Error adding supplier: ' + error.message)
   }
+}
+  
 
   const handleEditSupplier = async (updatedSupplier) => {
     try {

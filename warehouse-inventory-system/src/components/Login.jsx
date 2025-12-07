@@ -114,21 +114,21 @@ export default function Login({ onLogin }) {
 
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm font-medium text-blue-900 mb-3">
-              Demo Credentials:
+              
             </p>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Admin:</span>
+                <span className="text-gray-600"></span>
                 <div className="flex items-center gap-2">
-                  <code className="bg-white px-2 py-1 rounded">admin / admin123</code>
-                  <Badge variant="destructive">Full Access</Badge>
+                  <code className="bg-white px-2 py-1 rounded"></code>
+                  <Badge variant="destructive"></Badge>
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Staff:</span>
+                <span className="text-gray-600"></span>
                 <div className="flex items-center gap-2">
-                  <code className="bg-white px-2 py-1 rounded">staff / staff123</code>
-                  <Badge variant="secondary">Limited Access</Badge>
+                  <code className="bg-white px-2 py-1 rounded"></code>
+                  <Badge variant="secondary"></Badge>
                 </div>
               </div>
             </div>

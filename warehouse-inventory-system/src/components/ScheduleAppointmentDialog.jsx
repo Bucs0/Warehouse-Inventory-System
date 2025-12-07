@@ -28,6 +28,10 @@ export default function ScheduleAppointmentDialog({
   })
 
   const [selectedItems, setSelectedItems] = useState([])
+  const [itemToAdd, setItemToAdd] = useState({
+    itemId: '',
+    quantity: ''
+  })
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -49,10 +53,9 @@ export default function ScheduleAppointmentDialog({
     ? inventoryData.filter(item => item.supplierId === formData.supplierId)
     : []
 
-  const handleAddItem = (e) => {
-    e.preventDefault()
-    const itemId = parseInt(e.target.itemSelect.value)
-    const quantity = parseInt(e.target.itemQuantity.value)
+  const handleAddItem = () => {
+    const itemId = parseInt(itemToAdd.itemId)
+    const quantity = parseInt(itemToAdd.quantity)
 
     if (!itemId || !quantity || quantity <= 0) {
       alert('Please select an item and enter valid quantity')
@@ -72,8 +75,8 @@ export default function ScheduleAppointmentDialog({
         quantity: quantity
       }])
       
-      e.target.itemSelect.value = ''
-      e.target.itemQuantity.value = ''
+      // Reset item selection form
+      setItemToAdd({ itemId: '', quantity: '' })
     }
   }
 
@@ -90,7 +93,7 @@ export default function ScheduleAppointmentDialog({
       return
     }
 
-    // FIX: Check the actual selectedItems state, not formData
+    // FIX: Check selectedItems state, not formData.items
     if (selectedItems.length === 0) {
       alert('Please add at least one item to the appointment')
       return
@@ -107,7 +110,7 @@ export default function ScheduleAppointmentDialog({
     const newAppointment = {
       id: Date.now(),
       ...formData,
-      items: selectedItems, // FIX: Use the selectedItems state
+      items: selectedItems, // FIX: Use selectedItems state
       scheduledBy: user.name,
       scheduledDate: new Date().toLocaleString('en-PH'),
       lastUpdated: new Date().toLocaleString('en-PH')
@@ -125,6 +128,7 @@ export default function ScheduleAppointmentDialog({
       notes: ''
     })
     setSelectedItems([])
+    setItemToAdd({ itemId: '', quantity: '' })
     onOpenChange(false)
   }
 
@@ -210,7 +214,10 @@ export default function ScheduleAppointmentDialog({
                 
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-7">
-                    <Select name="itemSelect">
+                    <Select 
+                      value={itemToAdd.itemId}
+                      onChange={(e) => setItemToAdd(prev => ({ ...prev, itemId: e.target.value }))}
+                    >
                       <option value="">Select item...</option>
                       {supplierItems
                         .filter(item => !selectedItems.some(si => si.itemId === item.id))
@@ -225,9 +232,10 @@ export default function ScheduleAppointmentDialog({
                   <div className="col-span-3">
                     <Input
                       type="number"
-                      name="itemQuantity"
                       min="1"
                       placeholder="Qty"
+                      value={itemToAdd.quantity}
+                      onChange={(e) => setItemToAdd(prev => ({ ...prev, quantity: e.target.value }))}
                     />
                   </div>
                   <div className="col-span-2">
