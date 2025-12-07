@@ -1,5 +1,5 @@
 // ============================================
-// COMPLETE APP WITH MYSQL DATABASE INTEGRATION
+// UPDATED APP.JSX - MYSQL DATABASE READY
 // ============================================
 
 import { useState, useEffect } from 'react'
@@ -29,6 +29,28 @@ export default function App() {
   const [appointments, setAppointments] = useState([])
   const [damagedItems, setDamagedItems] = useState([])
 
+  // ========== CHECK FOR EXISTING SESSION ==========
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      // Verify token and get user data
+      verifyToken()
+    }
+  }, [])
+
+  const verifyToken = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('userData'))
+      if (userData) {
+        setCurrentUser(userData)
+      }
+    } catch (error) {
+      console.error('Token verification failed:', error)
+      localStorage.removeItem('token')
+      localStorage.removeItem('userData')
+    }
+  }
+
   // ========== LOAD DATA FROM DATABASE ==========
   useEffect(() => {
     if (currentUser) {
@@ -57,16 +79,38 @@ export default function App() {
         api.getDamagedItems()
       ])
 
-      setInventoryData(inventory)
-      setSuppliers(supplierList)
+      // Process data to ensure proper types (MySQL returns some values as 0/1 for booleans)
+      const processedInventory = inventory.map(item => ({
+        ...item,
+        quantity: parseInt(item.quantity) || 0,
+        reorderLevel: parseInt(item.reorderLevel) || 0,
+        price: parseFloat(item.price) || 0,
+        supplierId: item.supplierId || null,
+        // Ensure dates are in proper format
+        dateAdded: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-PH') : item.dateAdded
+      }))
+
+      const processedSuppliers = supplierList.map(supplier => ({
+        ...supplier,
+        isActive: Boolean(supplier.isActive) // Convert 0/1 to true/false
+      }))
+
+      const processedAppointments = appointmentList.map(apt => ({
+        ...apt,
+        // Parse items if stored as JSON string
+        items: typeof apt.items === 'string' ? JSON.parse(apt.items) : apt.items
+      }))
+
+      setInventoryData(processedInventory)
+      setSuppliers(processedSuppliers)
       setCategories(categoryList)
       setActivityLogs(logs)
       setTransactionHistory(transactions)
-      setAppointments(appointmentList)
+      setAppointments(processedAppointments)
       setDamagedItems(damaged)
     } catch (error) {
       console.error('Error loading data:', error)
-      alert('Error loading data from database. Please check console.')
+      alert('Error loading data from database: ' + error.message)
     } finally {
       setIsLoading(false)
     }
@@ -75,12 +119,15 @@ export default function App() {
   // ========== HANDLER FUNCTIONS ==========
   
   const handleLogin = (user) => {
+    // Save user data to localStorage for session persistence
+    localStorage.setItem('userData', JSON.stringify(user))
     setCurrentUser(user)
     setCurrentPage('dashboard')
   }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('userData')
     setCurrentUser(null)
     setCurrentPage('dashboard')
   }
@@ -93,7 +140,7 @@ export default function App() {
   const handleAddItem = async (newItem) => {
     try {
       await api.addInventoryItem(newItem)
-      await loadAllData() // Reload all data
+      await loadAllData()
       alert('Item added successfully!')
     } catch (error) {
       console.error('Error adding item:', error)
@@ -279,10 +326,11 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading data from database...</p>
+          <p className="text-gray-600 font-medium">Loading data from database...</p>
+          <p className="text-gray-500 text-sm mt-2">Please wait</p>
         </div>
       </div>
     )
@@ -467,7 +515,6 @@ export default function App() {
             onAddSupplier={handleAddSupplier}
             onEditSupplier={handleEditSupplier}
             onDeleteSupplier={handleDeleteSupplier}
-            onAddItem={handleAddItem}
           />
         )}
 
