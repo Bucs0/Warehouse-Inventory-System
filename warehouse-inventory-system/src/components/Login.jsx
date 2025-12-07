@@ -1,5 +1,6 @@
-// Login component with role-based authentication
-// May dalawang user roles: Admin at Staff
+// ============================================
+// Updated Login Component with API Integration
+// ============================================
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -7,62 +8,42 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
-
-// Dummy users para sa demo (walang database pa)
-
-const DEMO_USERS = [
-  {
-    id: 1,
-    username: 'admin',
-    password: 'admin123',
-    role: 'Admin',
-    name: 'Mark Jade Bucao'
-  },
-  {
-    id: 2,
-    username: 'staff',
-    password: 'staff123',
-    role: 'Staff',
-    name: 'Chadrick Arsenal'
-  }
-]
+import { api } from '../services/api'
 
 export default function Login({ onLogin }) {
-  // State para sa form inputs
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Function na nag-hahandle ng login
-  const handleLogin = (e) => {
-    e.preventDefault() // Prevent page reload
-    setError('') // Clear previous errors
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setError('')
     setIsLoading(true)
 
-    // Simulate loading time (para realistic)
-    setTimeout(() => {
-      // Check kung may matching user
-      const user = DEMO_USERS.find(
-        u => u.username === username && u.password === password
-      )
-
-      if (user) {
-        // Success! Pass user data to parent component
-        onLogin(user)
+    try {
+      const response = await api.login(username, password)
+      
+      if (response.error) {
+        setError(response.error)
       } else {
-        // Failed login
-        setError('Wrong username or password')
-        setIsLoading(false)
+        // Save token to localStorage
+        localStorage.setItem('token', response.token)
+        // Pass user data to parent
+        onLogin(response.user)
       }
-    }, 500)
+    } catch (error) {
+      setError(error.message || 'Connection error. Please check if the backend server is running.')
+      console.error('Login error:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4">
-          {/* Logo/Title section */}
           <div className="flex flex-col items-center space-y-2">
             <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
               <svg 
@@ -90,7 +71,6 @@ export default function Login({ onLogin }) {
 
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Username field */}
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -104,7 +84,6 @@ export default function Login({ onLogin }) {
               />
             </div>
 
-            {/* Password field */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -118,43 +97,38 @@ export default function Login({ onLogin }) {
               />
             </div>
 
-            {/* Error message kung may mali */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded text-sm">
                 {error}
               </div>
             )}
 
-            {/* Login button */}
             <Button 
               type="submit" 
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Loging-in...' : 'Login'}
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
 
-
-          {/*credentials info*/}
-          
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm font-medium text-blue-900 mb-3">
-              
+              Demo Credentials:
             </p>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600"></span>
+                <span className="text-gray-600">Admin:</span>
                 <div className="flex items-center gap-2">
-                  <code className="bg-white px-2 py-1 rounded"></code>
-                  <Badge variant="destructive"></Badge>
+                  <code className="bg-white px-2 py-1 rounded">admin / admin123</code>
+                  <Badge variant="destructive">Full Access</Badge>
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600"></span>
+                <span className="text-gray-600">Staff:</span>
                 <div className="flex items-center gap-2">
-                  <code className="bg-white px-2 py-1 rounded"></code>
-                  <Badge variant="secondary"></Badge>
+                  <code className="bg-white px-2 py-1 rounded">staff / staff123</code>
+                  <Badge variant="secondary">Limited Access</Badge>
                 </div>
               </div>
             </div>
