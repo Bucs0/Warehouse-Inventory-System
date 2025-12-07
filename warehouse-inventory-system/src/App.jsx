@@ -5,7 +5,13 @@ import InventoryTable from './components/InventoryTable'
 import StockTransactions from './components/StockTransactions'
 import SuppliersPage from './components/SuppliersPage'
 import CategoriesPage from './components/CategoriesPage'
+import AppointmentsPage from './components/AppointmentsPage'
+import DamagedItemsPage from './components/DamagedItemsPage'
 import ActivityLogs from './components/ActivityLogs'
+
+// ============================================
+// COMPLETE APP WITH ALL MODULES
+// ============================================
 
 export default function App() {
   // ========== STATE MANAGEMENT ==========
@@ -81,7 +87,7 @@ export default function App() {
     }
   ])
   
-  // Inventory data (updated to use supplier IDs)
+  // Inventory data
   const [inventoryData, setInventoryData] = useState([
     {
       id: 1,
@@ -90,7 +96,6 @@ export default function App() {
       quantity: 50,
       location: 'Warehouse A, Shelf 1',
       reorderLevel: 20,
-      damagedStatus: 'Good',
       price: 250.00,
       supplier: 'Office Warehouse',
       supplierId: 1,
@@ -103,7 +108,6 @@ export default function App() {
       quantity: 5,
       location: 'Warehouse B, Section 2',
       reorderLevel: 10,
-      damagedStatus: 'Good',
       price: 15000.00,
       supplier: 'Tech Supplies Inc.',
       supplierId: 3,
@@ -116,7 +120,6 @@ export default function App() {
       quantity: 3,
       location: 'Warehouse C, Area 1',
       reorderLevel: 5,
-      damagedStatus: 'Damaged',
       price: 8500.00,
       supplier: 'Office Warehouse',
       supplierId: 1,
@@ -129,7 +132,6 @@ export default function App() {
       quantity: 200,
       location: 'Warehouse A, Shelf 3',
       reorderLevel: 50,
-      damagedStatus: 'Good',
       price: 10.00,
       supplier: 'Office Warehouse',
       supplierId: 1,
@@ -142,7 +144,6 @@ export default function App() {
       quantity: 8,
       location: 'Warehouse B, Section 4',
       reorderLevel: 15,
-      damagedStatus: 'Good',
       price: 1200.00,
       supplier: 'Tech Supplies Inc.',
       supplierId: 3,
@@ -177,7 +178,7 @@ export default function App() {
       userName: 'Chadrick Arsenal',
       userRole: 'Staff',
       timestamp: '11/16/2025 9:45 AM',
-      details: 'Updated damaged status'
+      details: 'Updated item information'
     }
   ])
 
@@ -197,6 +198,29 @@ export default function App() {
       stockAfter: 50
     }
   ])
+
+  // Appointments
+  const [appointments, setAppointments] = useState([
+    {
+      id: 1,
+      supplierId: 1,
+      supplierName: 'Office Warehouse',
+      date: '2025-11-25',
+      time: '10:00',
+      status: 'pending',
+      items: [
+        { itemId: 1, itemName: 'A4 Bond Paper', quantity: 100 },
+        { itemId: 4, itemName: 'Ballpen (Black)', quantity: 500 }
+      ],
+      notes: 'Deliver to main entrance',
+      scheduledBy: 'Mark Jade Bucao',
+      scheduledDate: '11/18/2025 2:30 PM',
+      lastUpdated: '11/18/2025 2:30 PM'
+    }
+  ])
+
+  // Damaged items
+  const [damagedItems, setDamagedItems] = useState([])
 
   // ========== HANDLER FUNCTIONS ==========
   
@@ -320,6 +344,26 @@ export default function App() {
       details: `${action} - ${transaction.reason}`
     }
     setActivityLogs(prev => [...prev, newLog])
+
+    // If OUT transaction with "Damaged/Discarded" reason, add to damaged items
+    if (transaction.transactionType === 'OUT' && transaction.reason === 'Damaged/Discarded') {
+      const item = inventoryData.find(i => i.id === transaction.itemId)
+      if (item) {
+        const damagedItem = {
+          id: Date.now(),
+          itemId: item.id,
+          itemName: item.itemName,
+          quantity: transaction.quantity,
+          location: item.location,
+          reason: 'Damaged/Discarded',
+          status: 'Standby',
+          price: item.price || 0,
+          dateDamaged: new Date().toLocaleDateString('en-PH'),
+          notes: ''
+        }
+        setDamagedItems(prev => [...prev, damagedItem])
+      }
+    }
   }
 
   // Supplier handlers
@@ -425,7 +469,6 @@ export default function App() {
       prev.map(category => category.id === updatedCategory.id ? updatedCategory : category)
     )
 
-    // Update category name in all inventory items if changed
     if (oldCategory && oldCategory.categoryName !== updatedCategory.categoryName) {
       setInventoryData(prev =>
         prev.map(item =>
@@ -476,6 +519,166 @@ export default function App() {
           hour12: true
         }),
         details: 'Category removed'
+      }
+      setActivityLogs(prev => [...prev, newLog])
+    }
+  }
+
+  // Appointment handlers
+  const handleScheduleAppointment = (appointment) => {
+    setAppointments(prev => [...prev, appointment])
+
+    const newLog = {
+      id: Date.now(),
+      itemName: `Appointment with ${appointment.supplierName}`,
+      action: 'Added',
+      userName: currentUser.name,
+      userRole: currentUser.role,
+      timestamp: new Date().toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      details: `Scheduled for ${appointment.date} at ${appointment.time}`
+    }
+    setActivityLogs(prev => [...prev, newLog])
+  }
+
+  const handleEditAppointment = (updatedAppointment) => {
+    setAppointments(prev =>
+      prev.map(apt => apt.id === updatedAppointment.id ? updatedAppointment : apt)
+    )
+
+    const newLog = {
+      id: Date.now(),
+      itemName: `Appointment with ${updatedAppointment.supplierName}`,
+      action: 'Edited',
+      userName: currentUser.name,
+      userRole: currentUser.role,
+      timestamp: new Date().toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      details: 'Appointment details updated'
+    }
+    setActivityLogs(prev => [...prev, newLog])
+  }
+
+  const handleCompleteAppointment = (appointmentId) => {
+    setAppointments(prev =>
+      prev.map(apt => 
+        apt.id === appointmentId 
+          ? { ...apt, status: 'completed', lastUpdated: new Date().toLocaleString('en-PH') } 
+          : apt
+      )
+    )
+
+    const appointment = appointments.find(a => a.id === appointmentId)
+    if (appointment) {
+      const newLog = {
+        id: Date.now(),
+        itemName: `Appointment with ${appointment.supplierName}`,
+        action: 'Edited',
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        timestamp: new Date().toLocaleString('en-PH', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
+        details: 'Marked as completed'
+      }
+      setActivityLogs(prev => [...prev, newLog])
+    }
+  }
+
+  const handleCancelAppointment = (appointmentId) => {
+    setAppointments(prev =>
+      prev.map(apt => 
+        apt.id === appointmentId 
+          ? { ...apt, status: 'cancelled', lastUpdated: new Date().toLocaleString('en-PH') } 
+          : apt
+      )
+    )
+
+    const appointment = appointments.find(a => a.id === appointmentId)
+    if (appointment) {
+      const newLog = {
+        id: Date.now(),
+        itemName: `Appointment with ${appointment.supplierName}`,
+        action: 'Deleted',
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        timestamp: new Date().toLocaleString('en-PH', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
+        details: 'Appointment cancelled'
+      }
+      setActivityLogs(prev => [...prev, newLog])
+    }
+  }
+
+  // Damaged items handlers
+  const handleUpdateDamagedItem = (updatedItem) => {
+    setDamagedItems(prev =>
+      prev.map(item => item.id === updatedItem.id ? updatedItem : item)
+    )
+
+    const newLog = {
+      id: Date.now(),
+      itemName: updatedItem.itemName,
+      action: 'Edited',
+      userName: currentUser.name,
+      userRole: currentUser.role,
+      timestamp: new Date().toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      details: `Damaged item status updated to ${updatedItem.status}`
+    }
+    setActivityLogs(prev => [...prev, newLog])
+  }
+
+  const handleRemoveDamagedItem = (itemId) => {
+    const item = damagedItems.find(i => i.id === itemId)
+    
+    setDamagedItems(prev => prev.filter(i => i.id !== itemId))
+
+    if (item) {
+      const newLog = {
+        id: Date.now(),
+        itemName: item.itemName,
+        action: 'Deleted',
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        timestamp: new Date().toLocaleString('en-PH', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
+        details: 'Removed from damaged items list'
       }
       setActivityLogs(prev => [...prev, newLog])
     }
@@ -576,6 +779,31 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => handleNavigate('appointments')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                currentPage === 'appointments' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="font-medium">Appointments</span>
+            </button>
+
+            <button
+              onClick={() => handleNavigate('damaged')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                currentPage === 'damaged' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span className="font-medium">Damaged Items</span>
+            </button>
+
+            <button
               onClick={() => handleNavigate('logs')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === 'logs' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
@@ -625,6 +853,8 @@ export default function App() {
           <InventoryTable
             user={currentUser}
             inventoryData={inventoryData}
+            suppliers={suppliers}
+            categories={categories}
             onAddItem={handleAddItem}
             onEditItem={handleEditItem}
             onDeleteItem={handleDeleteItem}
@@ -650,6 +880,28 @@ export default function App() {
             onAddCategory={handleAddCategory}
             onEditCategory={handleEditCategory}
             onDeleteCategory={handleDeleteCategory}
+          />
+        )}
+
+        {currentPage === 'appointments' && (
+          <AppointmentsPage
+            user={currentUser}
+            appointments={appointments}
+            suppliers={suppliers}
+            inventoryData={inventoryData}
+            onScheduleAppointment={handleScheduleAppointment}
+            onEditAppointment={handleEditAppointment}
+            onCancelAppointment={handleCancelAppointment}
+            onCompleteAppointment={handleCompleteAppointment}
+          />
+        )}
+
+        {currentPage === 'damaged' && (
+          <DamagedItemsPage
+            user={currentUser}
+            damagedItems={damagedItems}
+            onUpdateDamagedItem={handleUpdateDamagedItem}
+            onRemoveDamagedItem={handleRemoveDamagedItem}
           />
         )}
 
