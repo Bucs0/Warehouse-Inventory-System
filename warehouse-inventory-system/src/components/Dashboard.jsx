@@ -1,11 +1,13 @@
-// Main dashboard na may overview cards at navigation
+// Updated Dashboard component - removed redundant navigation buttons
+// No "View Full Inventory" button for Staff
+// Removed "Manage Inventory" and "Activity Logs" quick action cards
 
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 
 export default function Dashboard({ user, inventoryData, activityLogs, onNavigate }) {
-  // Calculate statistics mula sa inventory data
+  // Calculate statistics from inventory data
   const totalItems = inventoryData.length
   const lowStockItems = inventoryData.filter(item => item.quantity <= item.reorderLevel).length
   const damagedItems = inventoryData.filter(item => item.damagedStatus === 'Damaged').length
@@ -25,12 +27,15 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
             <Badge variant="outline" className="ml-2">{user.role}</Badge>
           </p>
         </div>
-        <Button variant="outline" onClick={() => onNavigate('inventory')}>
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-          View Full Inventory
-        </Button>
+        {/* Only show "View Full Inventory" button for Admin */}
+        {user.role === 'Admin' && (
+          <Button variant="outline" onClick={() => onNavigate('inventory')}>
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            View Full Inventory
+          </Button>
+        )}
       </div>
 
       {/* Statistics cards */}
@@ -125,7 +130,7 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
             <div className="space-y-4">
               {recentActivities.map((log) => (
                 <div key={log.id} className="flex items-start gap-4 pb-4 border-b last:border-0 last:pb-0">
-                  {/* Icon based sa action */}
+                  {/* Icon based on action */}
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                     log.action === 'Added' ? 'bg-green-100' :
                     log.action === 'Edited' ? 'bg-blue-100' :
@@ -171,36 +176,8 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onNavigate('inventory')}>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <h3 className="font-semibold mb-1">Manage Inventory</h3>
-              <p className="text-sm text-muted-foreground">Add, edit, or view items</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onNavigate('logs')}>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h3 className="font-semibold mb-1">Activity Logs</h3>
-              <p className="text-sm text-muted-foreground">View all system changes</p>
-            </div>
-          </CardContent>
-        </Card>
-
+      {/* Quick Actions - Only show "Generate Reports" for now */}
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <Card className="hover:shadow-lg transition-shadow">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -210,7 +187,7 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
                 </svg>
               </div>
               <h3 className="font-semibold mb-1">Generate Reports</h3>
-              <p className="text-sm text-muted-foreground"></p>
+              <p className="text-sm text-muted-foreground">Coming Soon</p>
             </div>
           </CardContent>
         </Card>
