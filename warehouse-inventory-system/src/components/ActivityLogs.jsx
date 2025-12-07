@@ -1,7 +1,6 @@
 // ============================================
-// FILE: src/components/ActivityLogs.jsx (UPDATED)
+// FILE: src/components/ActivityLogs.jsx (DATABASE READY)
 // ============================================
-// Activity logs with month and year filtering
 
 import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -32,18 +31,38 @@ export default function ActivityLogs({ activityLogs }) {
   const [selectedMonth, setSelectedMonth] = useState('all')
   const [selectedYear, setSelectedYear] = useState('all')
 
-  // Get unique years from logs
+  // Get unique years from logs (from database timestamps)
   const availableYears = useMemo(() => {
     const years = new Set()
     activityLogs.forEach(log => {
-      // Parse date from timestamp (format: MM/DD/YYYY HH:MM AM/PM)
-      const dateMatch = log.timestamp.match(/(\d{2})\/(\d{2})\/(\d{4})/)
-      if (dateMatch) {
-        years.add(dateMatch[3]) // Year
+      try {
+        const date = new Date(log.timestamp)
+        if (!isNaN(date.getTime())) {
+          years.add(date.getFullYear().toString())
+        }
+      } catch (e) {
+        // Skip invalid dates
       }
     })
-    return Array.from(years).sort((a, b) => b - a) // Sort descending
+    return Array.from(years).sort((a, b) => b - a)
   }, [activityLogs])
+
+  // Format date from database timestamp
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    } catch (e) {
+      return dateString
+    }
+  }
 
   // Filter logs
   const filteredLogs = activityLogs.filter(log => {
@@ -59,16 +78,21 @@ export default function ActivityLogs({ activityLogs }) {
     // Month/Year filter
     let matchesDate = true
     if (selectedMonth !== 'all' || selectedYear !== 'all') {
-      const dateMatch = log.timestamp.match(/(\d{2})\/(\d{2})\/(\d{4})/)
-      if (dateMatch) {
-        const [, month, , year] = dateMatch
-        
-        if (selectedMonth !== 'all' && month !== selectedMonth) {
-          matchesDate = false
+      try {
+        const date = new Date(log.timestamp)
+        if (!isNaN(date.getTime())) {
+          const month = (date.getMonth() + 1).toString().padStart(2, '0')
+          const year = date.getFullYear().toString()
+          
+          if (selectedMonth !== 'all' && month !== selectedMonth) {
+            matchesDate = false
+          }
+          if (selectedYear !== 'all' && year !== selectedYear) {
+            matchesDate = false
+          }
         }
-        if (selectedYear !== 'all' && year !== selectedYear) {
-          matchesDate = false
-        }
+      } catch (e) {
+        matchesDate = false
       }
     }
 
@@ -113,7 +137,6 @@ export default function ActivityLogs({ activityLogs }) {
 
           {/* Month and Year Filter Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {/* Month Selector */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Filter by Month</label>
               <Select
@@ -129,7 +152,6 @@ export default function ActivityLogs({ activityLogs }) {
               </Select>
             </div>
 
-            {/* Year Selector */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Filter by Year</label>
               <Select
@@ -145,7 +167,6 @@ export default function ActivityLogs({ activityLogs }) {
               </Select>
             </div>
 
-            {/* Reset Button */}
             <div className="space-y-2">
               <label className="text-sm font-medium opacity-0">Reset</label>
               <Button
@@ -340,7 +361,7 @@ export default function ActivityLogs({ activityLogs }) {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {log.timestamp}
+                        {formatDate(log.timestamp)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {log.details || 'N/A'}

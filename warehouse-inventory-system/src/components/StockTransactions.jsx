@@ -1,7 +1,6 @@
 // ============================================
-// FILE: src/components/StockTransactions.jsx (UPDATED)
+// FILE: src/components/StockTransactions.jsx (DATABASE READY)
 // ============================================
-// Stock Transaction with search bar and better item identification
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -18,10 +17,11 @@ export default function StockTransactions({
   onTransaction 
 }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [itemSearchTerm, setItemSearchTerm] = useState('') // NEW: Search for items
+  const [itemSearchTerm, setItemSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   // Filter transactions
   const filteredTransactions = transactionHistory.filter(transaction => {
@@ -35,7 +35,7 @@ export default function StockTransactions({
     return matchesSearch && matchesType
   }).reverse()
 
-  // NEW: Filter items for transaction
+  // Filter items for transaction
   const filteredItems = inventoryData.filter(item =>
     item.itemName.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
     item.category.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
@@ -50,6 +50,19 @@ export default function StockTransactions({
   const handleOpenTransaction = (item) => {
     setSelectedItem(item)
     setIsTransactionDialogOpen(true)
+  }
+
+  const handleTransaction = async (transaction) => {
+    setIsProcessing(true)
+    try {
+      await onTransaction(transaction)
+      setIsTransactionDialogOpen(false)
+    } catch (error) {
+      console.error('Transaction error:', error)
+      alert('Failed to record transaction: ' + error.message)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -115,7 +128,7 @@ export default function StockTransactions({
         </Card>
       </div>
 
-      {/* Available Items for Transaction with Search */}
+      {/* Available Items for Transaction */}
       <Card>
         <CardHeader>
           <CardTitle>Available Items for Transaction</CardTitle>
@@ -123,7 +136,6 @@ export default function StockTransactions({
             Search and click on an item to record a transaction
           </p>
           
-          {/* NEW: Search bar for items */}
           <div className="mt-4">
             <Input
               type="search"
@@ -136,15 +148,15 @@ export default function StockTransactions({
         <CardContent>
           {filteredItems.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No items found matching "{itemSearchTerm}"
+              {itemSearchTerm ? `No items found matching "${itemSearchTerm}"` : 'No items available'}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredItems.map((item) => (
                 <div
                   key={item.id}
-                  onClick={() => handleOpenTransaction(item)}
-                  className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer bg-white"
+                  onClick={() => !isProcessing && handleOpenTransaction(item)}
+                  className={`p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
@@ -228,7 +240,6 @@ export default function StockTransactions({
             </div>
           </div>
 
-          {/* Search for transactions */}
           <div className="mt-4">
             <Input
               type="search"
@@ -300,7 +311,8 @@ export default function StockTransactions({
           onOpenChange={setIsTransactionDialogOpen}
           item={selectedItem}
           user={user}
-          onTransaction={onTransaction}
+          onTransaction={handleTransaction}
+          isProcessing={isProcessing}
         />
       )}
     </div>

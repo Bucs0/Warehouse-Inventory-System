@@ -1,5 +1,5 @@
 // ============================================
-// FILE: src/components/InventoryTable.jsx (COMPLETE UPDATED)
+// FILE: src/components/InventoryTable.jsx (DATABASE READY)
 // ============================================
 
 import { useState } from 'react'
@@ -24,6 +24,7 @@ export default function InventoryTable({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const filteredItems = inventoryData.filter(item => {
     const matchesSearch = item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,9 +41,43 @@ export default function InventoryTable({
     return matchesSearch && matchesStatus
   })
 
-  const handleDelete = (item) => {
-    if (window.confirm(`Are you sure you want to delete "${item.itemName}"?`)) {
-      onDeleteItem(item.id)
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Are you sure you want to delete "${item.itemName}"?`)) {
+      return
+    }
+
+    setIsProcessing(true)
+    try {
+      await onDeleteItem(item.id)
+    } catch (error) {
+      console.error('Delete error:', error)
+      alert('Failed to delete item: ' + error.message)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleAdd = async (newItem) => {
+    setIsProcessing(true)
+    try {
+      await onAddItem(newItem)
+    } catch (error) {
+      console.error('Add error:', error)
+      alert('Failed to add item: ' + error.message)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleEdit = async (updatedItem) => {
+    setIsProcessing(true)
+    try {
+      await onEditItem(updatedItem)
+    } catch (error) {
+      console.error('Edit error:', error)
+      alert('Failed to update item: ' + error.message)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -54,7 +89,10 @@ export default function InventoryTable({
             <CardTitle>Inventory Management</CardTitle>
             
             {user.role === 'Admin' && (
-              <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Button 
+                onClick={() => setIsAddDialogOpen(true)}
+                disabled={isProcessing}
+              >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -100,6 +138,12 @@ export default function InventoryTable({
         </CardHeader>
 
         <CardContent>
+          {isProcessing && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-800 text-sm">
+              ⏳ Processing... Please wait
+            </div>
+          )}
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -118,8 +162,8 @@ export default function InventoryTable({
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       {searchTerm || filterStatus !== 'all' 
-                        ? 'No item matched in the filter'
-                        : 'Still no item with this kind in the inventory'
+                        ? 'No items found matching filters'
+                        : 'No items in inventory yet'
                       }
                     </TableCell>
                   </TableRow>
@@ -161,6 +205,7 @@ export default function InventoryTable({
                             size="sm"
                             variant="outline"
                             onClick={() => setEditingItem(item)}
+                            disabled={isProcessing}
                           >
                             Edit
                           </Button>
@@ -170,6 +215,7 @@ export default function InventoryTable({
                               size="sm"
                               variant="destructive"
                               onClick={() => handleDelete(item)}
+                              disabled={isProcessing}
                             >
                               Delete
                             </Button>
@@ -194,7 +240,7 @@ export default function InventoryTable({
       <AddItemDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        onAdd={onAddItem}
+        onAdd={handleAdd}
         suppliers={suppliers}
         categories={categories}
       />
@@ -204,7 +250,7 @@ export default function InventoryTable({
           open={!!editingItem}
           onOpenChange={(open) => !open && setEditingItem(null)}
           item={editingItem}
-          onEdit={onEditItem}
+          onEdit={handleEdit}
           suppliers={suppliers}
           categories={categories}
         />

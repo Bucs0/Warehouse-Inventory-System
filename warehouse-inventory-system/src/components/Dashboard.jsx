@@ -1,6 +1,6 @@
-// Updated Dashboard component - removed redundant navigation buttons
-// No "View Full Inventory" button for Staff
-// Removed "Manage Inventory" and "Activity Logs" quick action cards
+// ============================================
+// FILE: src/components/Dashboard.jsx (DATABASE READY)
+// ============================================
 
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Badge } from './ui/badge'
@@ -15,6 +15,23 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
 
   // Get recent activities (last 5)
   const recentActivities = activityLogs.slice(-5).reverse()
+
+  // Format date from database timestamp
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleString('en-PH', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    } catch (e) {
+      return dateString
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -157,7 +174,7 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
                   <div className="flex-1">
                     <p className="font-medium">{log.itemName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {log.action} by {log.userName} • {log.timestamp}
+                      {log.action} by {log.userName} • {formatDate(log.timestamp)}
                     </p>
                   </div>
 
@@ -176,7 +193,7 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
         </CardContent>
       </Card>
 
-      {/* Quick Actions - Only show "Generate Reports" for now */}
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <Card className="hover:shadow-lg transition-shadow">
           <CardContent className="pt-6">

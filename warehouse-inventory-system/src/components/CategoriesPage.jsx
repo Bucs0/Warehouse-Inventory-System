@@ -1,8 +1,6 @@
 // ============================================
-// FILE: src/components/CategoriesPage.jsx
+// FILE: src/components/CategoriesPage.jsx (DATABASE READY)
 // ============================================
-// Category Management - View, Add, Edit, Delete categories
-// Admin: Full access | Staff: View only
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -12,7 +10,14 @@ import { Badge } from './ui/badge'
 import AddCategoryDialog from './AddCategoryDialog'
 import EditCategoryDialog from './EditCategoryDialog'
 
-export default function CategoriesPage({ user, categories, inventoryData, onAddCategory, onEditCategory, onDeleteCategory }) {
+export default function CategoriesPage({ 
+  user, 
+  categories, 
+  inventoryData, 
+  onAddCategory, 
+  onEditCategory, 
+  onDeleteCategory 
+}) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
@@ -29,7 +34,7 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
   }
 
   // Handle delete with confirmation
-  const handleDelete = (category) => {
+  const handleDelete = async (category) => {
     const itemCount = getCategoryItemCount(category.categoryName)
     if (itemCount > 0) {
       alert(`Cannot delete category "${category.categoryName}" because it has ${itemCount} item(s). Please reassign or remove items first.`)
@@ -37,7 +42,7 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
     }
     
     if (window.confirm(`Are you sure you want to delete category "${category.categoryName}"?`)) {
-      onDeleteCategory(category.id)
+      await onDeleteCategory(category.id)
     }
   }
 
@@ -162,7 +167,7 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
                       </div>
 
                       <div className="text-xs text-muted-foreground mb-4">
-                        Added: {category.dateAdded}
+                        Added: {new Date(category.createdAt).toLocaleDateString('en-PH')}
                       </div>
 
                       <div className="flex gap-2">
