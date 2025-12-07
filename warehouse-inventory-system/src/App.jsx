@@ -571,21 +571,51 @@ export default function App() {
     setActivityLogs(prev => [...prev, newLog])
   }
 
-  const handleCompleteAppointment = (appointmentId) => {
-    setAppointments(prev =>
-      prev.map(apt => 
-        apt.id === appointmentId 
-          ? { ...apt, status: 'completed', lastUpdated: new Date().toLocaleString('en-PH') } 
-          : apt
-      )
-    )
+  // In App.jsx, update the handleCompleteAppointment function:
 
-    const appointment = appointments.find(a => a.id === appointmentId)
-    if (appointment) {
-      const newLog = {
-        id: Date.now(),
-        itemName: `Appointment with ${appointment.supplierName}`,
-        action: 'Edited',
+const handleCompleteAppointment = (appointmentId) => {
+  const appointment = appointments.find(a => a.id === appointmentId)
+  
+  if (!appointment) return
+
+  // Update appointment status
+  setAppointments(prev =>
+    prev.map(apt => 
+      apt.id === appointmentId 
+        ? { ...apt, status: 'completed', lastUpdated: new Date().toLocaleString('en-PH') } 
+        : apt
+    )
+  )
+
+  // AUTO-UPDATE INVENTORY: Add the appointment items to inventory
+  setInventoryData(prev =>
+    prev.map(item => {
+      // Find if this item is in the appointment
+      const appointmentItem = appointment.items.find(ai => ai.itemId === item.id)
+      
+      if (appointmentItem) {
+        // Add the quantity from appointment to current quantity
+        return {
+          ...item,
+          quantity: item.quantity + appointmentItem.quantity
+        }
+      }
+      
+      return item
+    })
+  )
+
+  // Add transaction history for each item
+  appointment.items.forEach(appointmentItem => {
+    const item = inventoryData.find(i => i.id === appointmentItem.itemId)
+    if (item) {
+      const transaction = {
+        id: Date.now() + Math.random(), // Unique ID for each transaction
+        itemId: item.id,
+        itemName: item.itemName,
+        transactionType: 'IN',
+        quantity: appointmentItem.quantity,
+        reason: `Restock from appointment with ${appointment.supplierName}`,
         userName: currentUser.name,
         userRole: currentUser.role,
         timestamp: new Date().toLocaleString('en-PH', {
@@ -596,11 +626,33 @@ export default function App() {
           minute: '2-digit',
           hour12: true
         }),
-        details: 'Marked as completed'
+        stockBefore: item.quantity,
+        stockAfter: item.quantity + appointmentItem.quantity
       }
-      setActivityLogs(prev => [...prev, newLog])
+      
+      setTransactionHistory(prev => [...prev, transaction])
     }
+  })
+
+  // Activity log
+  const newLog = {
+    id: Date.now(),
+    itemName: `Appointment with ${appointment.supplierName}`,
+    action: 'Edited',
+    userName: currentUser.name,
+    userRole: currentUser.role,
+    timestamp: new Date().toLocaleString('en-PH', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }),
+    details: `Marked as completed - ${appointment.items.length} items restocked`
   }
+  setActivityLogs(prev => [...prev, newLog])
+}
 
   const handleCancelAppointment = (appointmentId) => {
     setAppointments(prev =>

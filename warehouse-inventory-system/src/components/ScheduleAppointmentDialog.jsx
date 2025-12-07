@@ -1,7 +1,6 @@
 // ============================================
-// FILE: src/components/ScheduleAppointmentDialog.jsx
+// FILE: src/components/ScheduleAppointmentDialog.jsx (FIXED)
 // ============================================
-// Dialog for scheduling new appointment with supplier
 
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
@@ -28,13 +27,12 @@ export default function ScheduleAppointmentDialog({
     notes: ''
   })
 
-  const [selectedItems, setSelectedItems] = useState([]) // Array of {itemId, itemName, quantity}
+  const [selectedItems, setSelectedItems] = useState([])
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // Handle supplier selection
   const handleSupplierChange = (supplierId) => {
     const supplier = suppliers.find(s => s.id === parseInt(supplierId))
     if (supplier) {
@@ -43,17 +41,14 @@ export default function ScheduleAppointmentDialog({
         supplierId: supplier.id,
         supplierName: supplier.supplierName
       }))
-      // Clear selected items when changing supplier
       setSelectedItems([])
     }
   }
 
-  // Get items from selected supplier
   const supplierItems = formData.supplierId 
     ? inventoryData.filter(item => item.supplierId === formData.supplierId)
     : []
 
-  // Add item to appointment
   const handleAddItem = (e) => {
     e.preventDefault()
     const itemId = parseInt(e.target.itemSelect.value)
@@ -64,7 +59,6 @@ export default function ScheduleAppointmentDialog({
       return
     }
 
-    // Check if item already added
     if (selectedItems.some(item => item.itemId === itemId)) {
       alert('Item already added to this appointment')
       return
@@ -78,13 +72,11 @@ export default function ScheduleAppointmentDialog({
         quantity: quantity
       }])
       
-      // Reset item form
       e.target.itemSelect.value = ''
       e.target.itemQuantity.value = ''
     }
   }
 
-  // Remove item from appointment
   const handleRemoveItem = (itemId) => {
     setSelectedItems(prev => prev.filter(item => item.itemId !== itemId))
   }
@@ -98,12 +90,12 @@ export default function ScheduleAppointmentDialog({
       return
     }
 
+    // FIX: Check the actual selectedItems state, not formData
     if (selectedItems.length === 0) {
       alert('Please add at least one item to the appointment')
       return
     }
 
-    // Check if date is in the past
     const selectedDate = new Date(`${formData.date}T${formData.time}`)
     const now = new Date()
     if (selectedDate < now) {
@@ -112,11 +104,10 @@ export default function ScheduleAppointmentDialog({
       }
     }
 
-    // Create appointment
     const newAppointment = {
       id: Date.now(),
       ...formData,
-      items: selectedItems,
+      items: selectedItems, // FIX: Use the selectedItems state
       scheduledBy: user.name,
       scheduledDate: new Date().toLocaleString('en-PH'),
       lastUpdated: new Date().toLocaleString('en-PH')
@@ -137,7 +128,6 @@ export default function ScheduleAppointmentDialog({
     onOpenChange(false)
   }
 
-  // Get minimum date (today)
   const getTodayDate = () => {
     const today = new Date()
     return today.toISOString().split('T')[0]
@@ -152,7 +142,6 @@ export default function ScheduleAppointmentDialog({
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {/* Supplier Selection */}
             <div className="space-y-2">
               <Label htmlFor="supplier">
                 Supplier <span className="text-red-500">*</span>
@@ -175,7 +164,6 @@ export default function ScheduleAppointmentDialog({
               </Select>
             </div>
 
-            {/* Date and Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="date">
@@ -204,7 +192,6 @@ export default function ScheduleAppointmentDialog({
               </div>
             </div>
 
-            {/* Status */}
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -217,12 +204,10 @@ export default function ScheduleAppointmentDialog({
               </Select>
             </div>
 
-            {/* Items Section */}
             {formData.supplierId && (
               <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
                 <h4 className="font-semibold">Items to Restock</h4>
                 
-                {/* Add Item Form */}
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-7">
                     <Select name="itemSelect">
@@ -257,7 +242,6 @@ export default function ScheduleAppointmentDialog({
                   </div>
                 </div>
 
-                {/* Selected Items List */}
                 {selectedItems.length > 0 && (
                   <div className="space-y-2 mt-3">
                     <p className="text-sm font-medium">Selected Items:</p>
@@ -287,7 +271,6 @@ export default function ScheduleAppointmentDialog({
               </div>
             )}
 
-            {/* Notes */}
             <div className="space-y-2">
               <Label htmlFor="notes">Notes (Optional)</Label>
               <Input
@@ -298,7 +281,6 @@ export default function ScheduleAppointmentDialog({
               />
             </div>
 
-            {/* Summary */}
             {selectedItems.length > 0 && (
               <div className="p-3 bg-blue-50 rounded-lg text-sm">
                 <p className="font-medium">Appointment Summary:</p>
