@@ -46,11 +46,18 @@ export default function ScheduleAppointmentDialog({
         supplierName: supplier.supplierName
       }))
       setSelectedItems([])
+      setItemToAdd({ itemId: '', quantity: '' })
     }
   }
 
+  // FIX: Convert both supplierId values to numbers for comparison
   const supplierItems = formData.supplierId 
-    ? inventoryData.filter(item => item.supplierId === formData.supplierId)
+    ? inventoryData.filter(item => {
+        // Handle both number and string comparisons
+        const itemSupplierId = parseInt(item.supplierId)
+        const selectedSupplierId = parseInt(formData.supplierId)
+        return itemSupplierId === selectedSupplierId
+      })
     : []
 
   const handleAddItem = () => {
@@ -93,7 +100,6 @@ export default function ScheduleAppointmentDialog({
       return
     }
 
-    // FIX: Check selectedItems state, not formData.items
     if (selectedItems.length === 0) {
       alert('Please add at least one item to the appointment')
       return
@@ -110,7 +116,7 @@ export default function ScheduleAppointmentDialog({
     const newAppointment = {
       id: Date.now(),
       ...formData,
-      items: selectedItems, // FIX: Use selectedItems state
+      items: selectedItems,
       scheduledBy: user.name,
       scheduledDate: new Date().toLocaleString('en-PH'),
       lastUpdated: new Date().toLocaleString('en-PH')
@@ -212,13 +218,36 @@ export default function ScheduleAppointmentDialog({
               <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
                 <h4 className="font-semibold">Items to Restock</h4>
                 
+                {/* DEBUG INFO - Remove after testing */}
+                {supplierItems.length === 0 && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                    <p className="font-medium text-yellow-800">Debug Info:</p>
+                    <p className="text-yellow-700">Selected Supplier ID: {formData.supplierId}</p>
+                    <p className="text-yellow-700">Total items in inventory: {inventoryData.length}</p>
+                    <p className="text-yellow-700">Items for this supplier: {supplierItems.length}</p>
+                    <p className="text-yellow-700 mt-2">Inventory items with supplier IDs:</p>
+                    <div className="max-h-32 overflow-y-auto mt-1">
+                      {inventoryData.map(item => (
+                        <p key={item.id} className="text-xs text-yellow-600">
+                          {item.itemName} - Supplier ID: {item.supplierId} (Type: {typeof item.supplierId})
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-7">
                     <Select 
                       value={itemToAdd.itemId}
                       onChange={(e) => setItemToAdd(prev => ({ ...prev, itemId: e.target.value }))}
+                      disabled={supplierItems.length === 0}
                     >
-                      <option value="">Select item...</option>
+                      <option value="">
+                        {supplierItems.length === 0 
+                          ? 'No items from this supplier in inventory' 
+                          : 'Select item...'}
+                      </option>
                       {supplierItems
                         .filter(item => !selectedItems.some(si => si.itemId === item.id))
                         .map(item => (
@@ -236,6 +265,7 @@ export default function ScheduleAppointmentDialog({
                       placeholder="Qty"
                       value={itemToAdd.quantity}
                       onChange={(e) => setItemToAdd(prev => ({ ...prev, quantity: e.target.value }))}
+                      disabled={supplierItems.length === 0}
                     />
                   </div>
                   <div className="col-span-2">
@@ -244,6 +274,7 @@ export default function ScheduleAppointmentDialog({
                       size="sm"
                       className="w-full"
                       onClick={handleAddItem}
+                      disabled={supplierItems.length === 0}
                     >
                       Add
                     </Button>
@@ -271,10 +302,11 @@ export default function ScheduleAppointmentDialog({
                   </div>
                 )}
 
-                {supplierItems.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    No items from this supplier in inventory.
-                  </p>
+                {supplierItems.length === 0 && formData.supplierId && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                    <p className="font-medium">No items found for this supplier</p>
+                    <p className="mt-1">Make sure items are added to inventory with this supplier selected, or add items through the Suppliers page.</p>
+                  </div>
                 )}
               </div>
             )}
@@ -304,7 +336,7 @@ export default function ScheduleAppointmentDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={selectedItems.length === 0}>
               Schedule Appointment
             </Button>
           </DialogFooter>

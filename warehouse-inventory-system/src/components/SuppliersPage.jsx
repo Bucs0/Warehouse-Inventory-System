@@ -1,5 +1,5 @@
 // ============================================
-// FILE: src/components/SuppliersPage.jsx (DATABASE READY)
+// FILE: src/components/SuppliersPage.jsx (FIXED - TYPE-SAFE COMPARISON)
 // ============================================
 
 import { useState } from 'react'
@@ -41,8 +41,21 @@ export default function SuppliersPage({
     return matchesSearch && matchesStatus
   })
 
+  // FIX: Type-safe comparison for supplier item count
   const getSupplierItemCount = (supplierId) => {
-    return inventoryData.filter(item => item.supplierId === supplierId).length
+    const count = inventoryData.filter(item => {
+      // Convert both to numbers for comparison
+      const itemSupplierId = parseInt(item.supplierId)
+      const targetSupplierId = parseInt(supplierId)
+      return itemSupplierId === targetSupplierId
+    }).length
+    
+    // Debug log (remove after testing)
+    console.log(`Supplier ID ${supplierId}: Found ${count} items`, {
+      allItems: inventoryData.map(i => ({ name: i.itemName, supplierId: i.supplierId }))
+    })
+    
+    return count
   }
 
   const handleDelete = async (supplier) => {
@@ -197,51 +210,56 @@ export default function SuppliersPage({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredSuppliers.map((supplier) => (
-                    <TableRow key={supplier.id}>
-                      <TableCell className="font-medium">{supplier.supplierName}</TableCell>
-                      <TableCell>{supplier.contactPerson}</TableCell>
-                      <TableCell>
-                        {supplier.contactEmail ? (
-                          <a href={`mailto:${supplier.contactEmail}`} className="text-blue-600 hover:underline">
-                            {supplier.contactEmail}
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{supplier.contactPhone || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{getSupplierItemCount(supplier.id)} items</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={(supplier.isActive === true || supplier.isActive === 1) ? 'success' : 'secondary'}>
-                          {(supplier.isActive === true || supplier.isActive === 1) ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingSupplier(supplier)}
-                          >
-                            {user.role === 'Admin' ? 'Edit' : 'View'}
-                          </Button>
-                          
-                          {user.role === 'Admin' && (
+                  filteredSuppliers.map((supplier) => {
+                    const itemCount = getSupplierItemCount(supplier.id)
+                    return (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">{supplier.supplierName}</TableCell>
+                        <TableCell>{supplier.contactPerson}</TableCell>
+                        <TableCell>
+                          {supplier.contactEmail ? (
+                            <a href={`mailto:${supplier.contactEmail}`} className="text-blue-600 hover:underline">
+                              {supplier.contactEmail}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{supplier.contactPhone || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={(supplier.isActive === true || supplier.isActive === 1) ? 'success' : 'secondary'}>
+                            {(supplier.isActive === true || supplier.isActive === 1) ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
-                              variant="destructive"
-                              onClick={() => handleDelete(supplier)}
+                              variant="outline"
+                              onClick={() => setEditingSupplier(supplier)}
                             >
-                              Delete
+                              {user.role === 'Admin' ? 'Edit' : 'View'}
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            
+                            {user.role === 'Admin' && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDelete(supplier)}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
@@ -259,6 +277,7 @@ export default function SuppliersPage({
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAdd={onAddSupplier}
+        inventoryData={inventoryData}
         categories={categories}
       />
 
